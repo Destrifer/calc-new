@@ -1,115 +1,144 @@
 <template>
-  <div class="calculator">
-    <div class="options">
-      <label for="tirazh">Тираж: {{ tirazh }}</label>
-      <input
-        type="range"
-        id="tirazh"
-        v-model="tirazh"
-        min="100"
-        max="10000"
-        step="100"
-        @input="updateStack"
-      />
-    </div>
-    <div class="stack-demo" ref="sceneContainer"></div>
-  </div>
+	<div class="calculator">
+		<h2>Калькулятор производства календарей</h2>
+
+		<div class="form-group">
+			<label for="quantity">Тираж продукции:</label>
+			<input type="number" v-model="quantity" min="1" required />
+		</div>
+
+		<div class="form-group">
+			<label for="calendarType">Тип календаря:</label>
+			<select v-model="calendarType" required>
+				<option value="mini">Мини</option>
+				<option value="midi">Миди</option>
+				<option value="maxi">Макси</option>
+			</select>
+		</div>
+
+		<div class="form-group">
+			<label for="blockType">Тип блоков:</label>
+			<select v-model="blockType" required>
+				<option value="coated">Мелованые</option>
+				<option value="offset">Овсетные</option>
+				<option value="individual">Индивидуальные</option>
+			</select>
+		</div>
+
+		<div class="form-group">
+			<label for="adFields">Рекламные поля:</label>
+			<select v-model="adFields" required>
+				<option value="none">Без</option>
+				<option value="one">Одно</option>
+				<option value="three">Три</option>
+			</select>
+		</div>
+
+		<div class="form-group">
+			<label for="lamination">Ламинация:</label>
+			<select v-model="lamination" required>
+				<option value="none">Без</option>
+				<option value="one-sided">Односторонняя</option>
+				<option value="two-sided">Двусторонняя</option>
+			</select>
+		</div>
+
+		<button @click="calculateCost">Рассчитать</button>
+
+		<div v-if="totalCost !== null" class="result">
+			<h3>Итоговая стоимость: {{ totalCost }} ₽</h3>
+		</div>
+	</div>
 </template>
 
 <script>
-import * as THREE from 'three';
-
 export default {
-  data() {
-    return {
-      tirazh: 1000, // Это можно оставить реактивным
-    };
-  },
-  mounted() {
-    // Инициализация Three.js после монтирования компонента
-    this.initThree();
-  },
-  methods: {
-    initThree() {
-      // Размеры для рендера
-      const width = this.$refs.sceneContainer.clientWidth;
-      const height = 300; // Высота контейнера
+	data() {
+		return {
+			quantity: 1,
+			calendarType: 'mini',
+			blockType: 'coated',
+			adFields: 'none',
+			lamination: 'none',
+			totalCost: null,
+		};
+	},
+	methods: {
+		calculateCost() {
+			// Пример расчета (значения для каждого типа можно настроить)
+			const basePrice = 100; // Базовая стоимость
+			let cost = basePrice * this.quantity;
 
-      // Создаем сцену (не реактивно)
-      this.scene = new THREE.Scene();
+			// Дополнительные коэффициенты для характеристик
+			const calendarTypeFactor = {
+				mini: 1,
+				midi: 1.2,
+				maxi: 1.5
+			};
+			const blockTypeFactor = {
+				coated: 1,
+				offset: 1.1,
+				individual: 1.3
+			};
+			const adFieldsFactor = {
+				none: 1,
+				one: 1.1,
+				three: 1.3
+			};
+			const laminationFactor = {
+				none: 1,
+				'one-sided': 1.2,
+				'two-sided': 1.5
+			};
 
-      // Создаем камеру (не реактивно)
-      this.camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
-      this.camera.position.z = 200; // Позиционирование камеры
-
-      // Создаем рендерер (не реактивно)
-      this.renderer = new THREE.WebGLRenderer();
-      this.renderer.setSize(width, height);
-      this.$refs.sceneContainer.appendChild(this.renderer.domElement);
-
-      // Добавляем свет
-      const light = new THREE.DirectionalLight(0xffffff, 1);
-      light.position.set(1, 1, 1).normalize();
-      this.scene.add(light);
-
-      // Создаем начальную стопку
-      this.createStack();
-
-      // Начинаем анимацию
-      this.animate();
-    },
-    createStack() {
-      // Создаем геометрию стопки
-      const geometry = new THREE.BoxGeometry(50, this.calculateStackHeight(), 50);
-      const material = new THREE.MeshPhongMaterial({ color: 0x888888 });
-
-      // Если стопка уже существует — удаляем её
-      if (this.stack) {
-        this.scene.remove(this.stack);
-      }
-
-      // Создаем новую стопку (не реактивно)
-      this.stack = new THREE.Mesh(geometry, material);
-      this.scene.add(this.stack);
-    },
-    updateStack() {
-      // Обновляем стопку при изменении тиража
-      this.createStack();
-    },
-    calculateStackHeight() {
-      // Примерная зависимость высоты от тиража
-      return (this.tirazh / 10000) * 200; // Высота до 200px при максимальном тираже
-    },
-    animate() {
-      // Используем замыкание для requestAnimationFrame, чтобы избежать потери контекста
-      requestAnimationFrame(() => this.animate());
-
-      // Поворот стопки для визуального эффекта
-      if (this.stack) {
-        this.stack.rotation.y += 0.01;
-      }
-
-      // Рендерим сцену с камерой
-      this.renderer.render(this.scene, this.camera);
-    },
-  },
+			cost *= calendarTypeFactor[this.calendarType];
+			cost *= blockTypeFactor[this.blockType];
+			cost *= adFieldsFactor[this.adFields];
+			cost *= laminationFactor[this.lamination];
+			console.log(this.totalCost);
+			this.totalCost = cost.toFixed(2);
+		}
+	}
 };
 </script>
 
 <style scoped>
 .calculator {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+	width: 300px;
+	margin: 0 auto;
+	padding: 20px;
+	border: 1px solid #ccc;
+	border-radius: 8px;
+	background-color: #000;
 }
 
-.options {
-  width: 30%;
+.form-group {
+	margin-bottom: 15px;
 }
 
-.stack-demo {
-  width: 60%;
-  height: 300px; /* Высота контейнера для рендера */
-  border: 1px solid #ccc;
+label {
+	display: block;
+	margin-bottom: 5px;
+}
+
+input,
+select {
+	width: 100%;
+	padding: 8px;
+	margin-bottom: 10px;
+}
+
+button {
+	padding: 10px 15px;
+	background-color: #007bff;
+	color: white;
+	border: none;
+	border-radius: 4px;
+	cursor: pointer;
+}
+
+.result {
+	margin-top: 20px;
+	font-weight: bold;
 }
 </style>
